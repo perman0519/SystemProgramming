@@ -168,6 +168,11 @@ NOTES:
    - 56 emoji characters
    - 285 hentaigana
    - 3 additional Zanabazar Square characters */
+#include <stdio.h>
+
+void print_i(int x) {
+  printf("0.%.8x\n", x);
+}
 /*
  * byteSwap - swaps the nth byte and the mth byte
  *  Examples: byteSwap(0x12345678, 1, 3) = 0x56341278
@@ -177,12 +182,6 @@ NOTES:
  *  Max ops: 25
  *  Rating: 2
  */
-#include <stdio.h>
-
-void print_i(int x) {
-  printf("0.%.8x\n", x);
-}
-
 int byteSwap(int x, int n, int m) {
   int n_3 = n << 3;
   int m_3 = m << 3;
@@ -265,6 +264,7 @@ unsigned floatScale4(unsigned uf) {
  *  Rating: 4
  */
 int howManyBits(int x) {
+
   return 0;
 }
 /*
@@ -277,7 +277,9 @@ int howManyBits(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return 0x39 & 0;
+  int min30 = (x + (~0x30 + 1)) >> 31; //4
+  int max39 = (0x39 + (~x + 1)) >> 31; //4
+  return (~min30 & ~max39) & 0x1; //4
 }
 /*
  * isNotEqual - return 0 if x == y, and 1 otherwise
@@ -287,7 +289,8 @@ int isAsciiDigit(int x) {
  *   Rating: 2
  */
 int isNotEqual(int x, int y) {
-  return 2;
+  int ret = x ^ y;
+  return !(!ret);
 }
 /*
  * isPower2 - returns 1 if x is a power of 2, and 0 otherwise
@@ -298,6 +301,7 @@ int isNotEqual(int x, int y) {
  *   Rating: 4
  */
 int isPower2(int x) {
+  int a = 3;
   return 2;
 }
 /*
@@ -323,7 +327,12 @@ int leftBitCount(int x) {
  *   Rating: 3
  */
 int multFiveEighths(int x) {
-  return 2;
+  int org_x = x;
+  int ret = x << 2;
+  ret = ret + org_x;
+  ret = ret >> 3;
+  print_i(ret);
+  return ((ret >> 31) & (ret + 1)) | (~(ret >> 31) & ret);
 }
 /*
  * rotateLeft - Rotate x to the left by n
@@ -346,9 +355,7 @@ int rotateLeft(int x, int n) {
  */
 int sign(int x) {
   int check_neg = x >> 31;
-  int min1 = ~0x0;
-  int check_not_zero = !x + min1;
-  return ((check_neg & check_neg) | (~check_neg & ((check_not_zero & 0x1) | (~check_not_zero & 0x0))));
+  return (check_neg | !!x);
 }
 /*
  * upperBits - pads n upper bits with 1's
@@ -359,11 +366,6 @@ int sign(int x) {
  *  Rating: 1
  */
 int upperBits(int n) {
-  // int min1 = ~0x0; // 0xfffffff
-  // int check_zero = !n + min1; // check n is not 0
-  // int mask = 0x1 << 31; // 0x80000000
-  // mask = mask >> (n + (min1));
-  // return((check_zero & mask) | (~check_zero & 0x0));
   int ret = ~0x0 + !n;
   ret = ret << (0x20 + (~n + 1));
   return ret;
