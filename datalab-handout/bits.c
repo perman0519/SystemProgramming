@@ -168,11 +168,11 @@ NOTES:
    - 56 emoji characters
    - 285 hentaigana
    - 3 additional Zanabazar Square characters */
-#include <stdio.h>
+// #include <stdio.h>
 
-void print_i(int x) {
-  printf("0.%.8x\n", x);
-}
+// void print_i(int x) {
+//   printf("0.%.8x\n", x);
+// }
 /*
  * byteSwap - swaps the nth byte and the mth byte
  *  Examples: byteSwap(0x12345678, 1, 3) = 0x56341278
@@ -313,6 +313,7 @@ int isPower2(int x) {
  *   Rating: 4
  */
 int leftBitCount(int x) {
+
   return 2;
 }
 /*
@@ -343,7 +344,11 @@ int multFiveEighths(int x) {
  *   Rating: 3
  */
 int rotateLeft(int x, int n) {
-  return 2;
+  int a = x >> (32 + (~n + 1));
+  int mask = (0x1 << n) + (~0x0);
+  a = a & mask;
+  x = x << n;
+  return (x | a);
 }
 /*
  * sign - return 1 if positive, 0 if zero, and -1 if negative
