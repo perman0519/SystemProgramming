@@ -168,11 +168,11 @@ NOTES:
    - 56 emoji characters
    - 285 hentaigana
    - 3 additional Zanabazar Square characters */
-#include <stdio.h>
+// #include <stdio.h>
 
-void print_i(int x) {
-  printf("0.%.8x\n", x);
-}
+// void print_i(int x) {
+//   printf("0.%.8x\n", x);
+// }
 /*
  * byteSwap - swaps the nth byte and the mth byte
  *  Examples: byteSwap(0x12345678, 1, 3) = 0x56341278
@@ -221,129 +221,7 @@ int fitsBits(int x, int n) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-unsigned sign = uf >> 31;
-  unsigned exp = (uf >> 23) & 0xff;
-  unsigned frac = uf & 0x7fffff; // 23비트 mantissa
-
-  int E = exp - 127; // 실제 지수 값
-
-  // 1. NaN, Infinity 처리
-  if (exp == 0xff) {
-    return 0x80000000u;
-  }
-
-  // 2. 너무 작은 값 처리 (0 반환)
-  // E < 0: 값 < 1.0. 정수 부분은 항상 0임.
-  if (E < 0) {
-    return 0;
-  }
-
-  // 3. 정수 오버플로우 처리 (E >= 31)
-  // E >= 31인 경우, |f| >= 2^31 입니다.
-  if (E >= 31) {
-    // 음수 오버플로우: -2^31을 반환해야 함 (0x80000000u)
-    if (sign) {
-        return 0x80000000u;
-    }
-    // 양수 오버플로우: 테스트 케이스가 요구한 최대 양수(0x7FFFFFFF)를 반환해야 함
-    else {
-        return 0x7fffffff;
-    }
-  }
-
-  // 4. 일반적인 정규화된/비정규화된 값 처리 (0 <= E <= 30)
-  unsigned M;
-  if (exp == 0) { // 비정규화된 값: 0.frac
-    M = frac;
-  } else { // 정규화된 값: 1.frac
-    M = frac | (0x01 << 23); // 1.을 추가
-  }
-
-  // 결과 정수 = M * 2^E
-
-  if (E < 23) {
-    // 소수점 이하 비트는 버림 (절사)
-    M = M >> (23 - E);
-  } else { // E >= 23
-    // M을 (E-23)만큼 왼쪽 시프트
-    M = M << (E - 23);
-  }
-
-  // 5. 부호 적용
-  if (sign) {
-    // 음수 범위: -2^31 ~ -1
-    // M이 0x80000000u (2^31)보다 크면 안 됨 (E >= 31은 이미 위에서 처리)
-    // M이 0x80000000u와 같으면 결과는 0x80000000u (-2147483648)
-    if (M > 0x80000000u) {
-      // E=30일 때 발생할 수 있는 2^31 초과
-      return 0x80000000u;
-    }
-    return -M;
-  } else {
-    // 양수 범위: 0 ~ 2^31 - 1 (0x7fffffff)
-    if (M > 0x7fffffff) {
-      // 양수 오버플로우는 최대 정수(0x7fffffff)로 클램프
-      return 0x7fffffff;
-    }
-    return M;
-  }
-  // unsigned sign = uf >> 31;
-  // unsigned exp = (uf >> 23) & 0xff;
-  // unsigned frac = uf & ((0x01 << 0x18) + ~0x0);
-
-  // int real_e = exp + (~0xff + 1);
-  // int wrong = 0x01 << 31;
-  // if ((exp == 0xff) || !((real_e + (~0x1f + 1)) >> 31)) //
-  //   return (wrong);
-
-  // if (real_e >> 31)
-  //   return 0;
-
-  // unsigned m;
-  // if (!exp) {
-  //   m = frac;
-  // }
-  // else {
-  //   m = frac | (0x01 << 23);
-  // }
-
-  // // 결과 정수 = M * 2^E
-
-  // // E는 0 이상 30 이하이므로, M을 E만큼 왼쪽 시프트합니다.
-  // if (real_e < 23) {
-  //   // 소수점 이하 비트는 버림 (C 언어의 int 변환처럼 0으로 절사)
-  //   m = m >> (23 - real_e);
-  // } else { // E >= 23
-  //   // M을 (E-23)만큼 왼쪽 시프트
-  //   m = m << (real_e - 23);
-
-  //   // E >= 31은 이미 처리되었으므로, 여기서 오버플로우가 발생할 가능성은 없습니다.
-  //   // E=30일 때, M << 7이 되지만, M은 24비트이므로 오버플로우는 없습니다.
-  //   // 하지만, 최종 결과가 2^31을 넘는지 확인해야 합니다.
-  // }
-
-  // // 부호 적용 및 최종 범위 확인
-  // int result;
-  // if (sign) {
-  //   result = -m;
-
-  //   // 음수 범위 확인: -M이 -2^31(0x80000000u)보다 작으면 안 됨.
-  //   // M은 unsigned int이므로 -M은 2의 보수로 변환됩니다.
-  //   // 0x80000000u는 (int)-2^31의 비트 패턴입니다.
-  //   // M이 2^31(0x80000000u)보다 크면 -M은 오버플로우됩니다.
-  //   if (m > wrong) {
-  //     return wrong;
-  //   }
-  // } else {
-  //   result = m;
-
-  //   // 양수 범위 확인: M이 2^31-1(0x7fffffff)보다 크면 안 됨.
-  //   if (m > ((((0x01 << 30) + ~0x0)  << 1) + 1)) { // 0x01
-  //     return wrong;
-  //   }
-  // }
-
-  // return result;
+  return 1;
 }
 
 /*
@@ -358,24 +236,24 @@ unsigned sign = uf >> 31;
  *   Rating: 4
  */
 unsigned floatScale1d2(unsigned uf) {
-    unsigned sign = uf >> 31;
-    unsigned exp  = (uf >> 23) & 0xFF;
-    unsigned frac = uf & 0x7FFFFF;
+    // unsigned sign = uf >> 31;
+    // unsigned exp  = (uf >> 23) & 0xFF;
+    // unsigned frac = uf & 0x7FFFFF;
 
-    if (exp == 0xFF) return uf; // NaN or Inf
+    // if (exp == 0xFF) return uf; // NaN or Inf
 
-    if (exp > 1) {
-        exp = exp - 1;
-        return (sign << 31) | (exp << 23) | frac;
-    } else if (exp == 1) {
-        // 정규수 → 비정규수
-        frac = frac | (1 << 23); // hidden bit 추가
-        frac = frac >> 1;
-        return (sign << 31) | frac;
-    } else { // exp == 0, 이미 비정규수
-        frac = frac >> 1;
-        return (sign << 31) | frac;
-    }
+    // if (exp > 1) {
+    //     exp = exp - 1;
+    //     return (sign << 31) | (exp << 23) | frac;
+    // } else if (exp == 1) {
+    //     // 정규수 → 비정규수
+    //     frac = frac | (1 << 23); // hidden bit 추가
+    //     frac = frac >> 1;
+    //     return (sign << 31) | frac;
+    // } else { // exp == 0, 이미 비정규수
+    //     frac = frac >> 1;
+    //     return (sign << 31) | frac;
+    // }
 }
 
 /*
@@ -390,9 +268,9 @@ unsigned floatScale1d2(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatScale4(unsigned uf) {
-  unsigned sign = uf >> 31;
-  unsigned exp = (uf >> 23) & 0xff;
-  unsigned frac = uf & ((0x01 << 0x18) + ~0x0);
+  // unsigned sign = uf >> 31;
+  // unsigned exp = (uf >> 23) & 0xff;
+  // unsigned frac = uf & ((0x01 << 0x18) + ~0x0);
   return 2;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
