@@ -353,12 +353,9 @@ int leftBitCount(int x) {
  *   Rating: 3
  */
 int multFiveEighths(int x) {
-  int org_x = x;
-  int ret = x << 2;
-  ret = ret + org_x;
-  ret = ret >> 3;
-  print_i(ret);
-  return ((ret >> 31) & (ret + 1)) | (~(ret >> 31) & ret);
+  int mul5 = (x << 0x02) + x;
+  int bias = (mul5 >> 31) & 0x07; // if neg : 0x08  - 1;
+  return (mul5 + bias) >> 0x03;
 }
 /*
  * rotateLeft - Rotate x to the left by n
