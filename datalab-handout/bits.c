@@ -224,7 +224,7 @@ int floatFloat2Int(unsigned uf) {
   unsigned sign = uf >> 31;
   unsigned exp = (uf >> 23) & 0xFF;
   unsigned frac = uf & 0x7FFFFF;
-  int real_e = exp + (~127 + 1);
+  int real_e = exp - 127;
   unsigned result;
 
   if (exp == 0xFF)
@@ -302,34 +302,47 @@ unsigned floatScale1d2(unsigned uf) {
  * floating point argument f.
  * ...
  */
-unsigned floatScale4(unsigned uf) {
-    unsigned sign = uf & 0x80000000;  // Extract sign bit
-    unsigned exp = (uf >> 23) & 0xff;  // Extract exponent
-    unsigned frac = uf & 0x007fffff;   // Extract fractional part
+unsigned floatUnsigned2Float(unsigned u) {
+    unsigned exp = 0x0;
+    unsigned e = 0x0;
+    unsigned frac = 0x0;
+    unsigned c = u;
+    unsigned mask = 0xFFFFFFFF;
 
-    // Case 1: NaN or Infinity (exp == 255)
-    if (exp == 0xff) {
-        return uf;  // Return unchanged
+    if (u == 0) {
+        return 0;
     }
 
-    // Case 2: Denormalized number (exp == 0)
-    if (exp == 0) {
-        // Multiply by 4 = shift left by 2 in denormalized form
-        // Need to handle potential overflow into normalized
-        frac = frac << 2;
-        return sign | frac;
+    while ((c != 1) && (exp != 31)) {
+        c = c >> 1;
+        exp += 1;
+        mask = mask << 1;
     }
 
-    // Case 3: Normalized number
-    // Multiply by 4 = add 2 to exponent (since 2^2 = 4)
-    exp = exp + 2;
+    int diff = 32 - (int)exp;
+    e = exp + 127;
+    frac = u & (~mask);
 
-    // Check for overflow to infinity
-    if (exp >= 0xff) {
-        return sign | 0x7f800000;  // Return infinity with correct sign
+    int gap = 9 - diff;
+    if (gap < 0) {
+        frac = frac << (diff - 9);
+    } else {
+        unsigned backup = frac;
+        frac = frac >> gap;
+        unsigned remain = backup - (frac << gap);
+        unsigned compare = 1 << (8 - diff);
+        if (remain > compare) {
+            frac += 1;
+        } else if (remain == compare) {
+            if ((backup + compare) & (compare << 1)) {
+                frac = frac;
+            } else {
+                frac += 1;
+            }
+        }
     }
 
-    return sign | (exp << 23) | frac;
+    return ((e << 23) + frac) & 0x7FFFFFFF;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
