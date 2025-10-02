@@ -226,31 +226,29 @@ int floatFloat2Int(unsigned uf) {
   unsigned frac = uf & 0x7FFFFF;
   int E = exp - 127;  /* Actual exponent */
   unsigned result;
-  
+
   /* Special cases */
   if (exp == 0xFF) {
-    /* NaN or Infinity */
     return 0x80000000u;
   }
-  
+
   if (exp == 0) {
-    /* Denormalized number or zero - rounds to 0 */
     return 0;
   }
-  
+
   /* Check if exponent is too negative (value < 1) */
   if (E < 0) {
     return 0;
   }
-  
+
   /* Check if exponent is too large (overflow) */
   if (E >= 31) {
     return 0x80000000u;
   }
-  
+
   /* Add implicit leading 1 to mantissa */
   frac = frac | 0x800000;  /* Now have 24-bit mantissa: 1.fraction */
-  
+
   /* Shift mantissa based on exponent */
   if (E >= 23) {
     /* Shift left - exponent larger than mantissa bits */
@@ -259,12 +257,12 @@ int floatFloat2Int(unsigned uf) {
     /* Shift right - exponent smaller than mantissa bits */
     result = frac >> (23 - E);
   }
-  
+
   /* Apply sign */
   if (sign) {
     result = -result;
   }
-  
+
   return result;
 }
 /*
@@ -279,7 +277,34 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatScale1d2(unsigned uf) {
+  unsigned sign = uf >> 31;
+  unsigned exp  = (uf >> 23) & 0xFF;
+  unsigned frac = uf & 0x7FFFFF;
 
+  /* NaN or Infinity - return as is */
+  if (exp == 0xFF) {
+    return uf;
+  }
+
+  /* Denormalized number (exp == 0) */
+  if (exp == 0) {
+    /* Just shift fraction right by 1, keep sign */
+    /* This handles rounding toward zero */
+    frac = frac >> 1;
+    return (sign << 31) | frac;
+  }
+
+  /* Normalized number transitioning to denormalized (exp == 1) */
+  if (exp == 1) {
+    /* Add implicit leading 1, then shift right */
+    frac = (frac | 0x800000) >> 1;
+    /* exp becomes 0 (denormalized) */
+    return (sign << 31) | frac;
+  }
+
+  /* Normal case: normalized number staying normalized (exp > 1) */
+  exp = exp - 1;
+  return (sign << 31) | (exp << 23) | frac;
 }
 /*
  * floatScale4 - Return bit-level equivalent of expression 4*f for
@@ -292,8 +317,55 @@ unsigned floatScale1d2(unsigned uf) {
  *   Max ops: 30
  *   Rating: 4
  */
+/*
+ * floatScale4 - Return bit-level equivalent of expression 4*f for
+ * floating point argument f.
+ * ...
+ */
 unsigned floatScale4(unsigned uf) {
+    unsigned sign = uf & 0x80000000;
+    unsigned exp  = (uf >> 23) & 0xFF;
+    unsigned frac = uf & 0x7FFFFF;
 
+    // 1. NaN 또는 무한대 처리 (지수 = 0xFF)
+    if (exp == 0xFF) {
+        return uf; // NaN 또는 무한대는 그대로 반환
+    }
+
+    // 2. 0 또는 비정규화 수 처리 (지수 = 0x00)
+    if (exp == 0x00) {
+        // 4를 곱하는 것은 가수를 왼쪽으로 2비트 시프트(frac << 2)하는 것입니다.
+        // 비정규화 수 $0.f \times 2^{-126}$에 $4$를 곱하면 $0.f' \times 2^{-124}$가 됩니다.
+        unsigned new_frac = frac << 2;
+
+        // 새로운 가수의 24번째 비트(0x800000)가 1이면, 오버플로되어 정규화 수로 전환됩니다.
+        if (new_frac & 0x800000) {
+            // 정규화 수로 전환: 지수는 1 (바이어스된 지수), 가수는 나머지 23비트
+            // E = 1 (바이어스 E = 128)
+            // 새로운 지수: 1
+            unsigned new_exp = 1;
+            // 새로운 가수: new_frac에서 묵시적 1을 나타내는 비트 제거
+            unsigned final_frac = new_frac & 0x7FFFFF;
+
+            return sign | (new_exp << 23) | final_frac;
+        } else {
+            // 여전히 비정규화 수이거나 0입니다. 지수는 0x00으로 유지됩니다.
+            return sign | new_frac;
+        }
+    }
+
+    // 3. 정규화 수 처리 (0x01 <= exp <= 0xFE)
+    // 4를 곱하는 것은 지수를 2 증가시키는 것입니다 ($E' = E + 2$).
+    unsigned new_exp = exp + 2;
+
+    // 오버플로 확인: 지수가 0xFF (255) 이상이면 무한대입니다.
+    if (new_exp >= 0xFF) {
+        // 무한대 반환 (부호 비트 + 지수 0xFF + 가수 0)
+        return sign | 0x7F800000;
+    }
+
+    // 오버플로가 없으면 새로운 지수와 기존 가수를 사용하여 결과를 구성합니다.
+    return sign | (new_exp << 23) | frac;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
