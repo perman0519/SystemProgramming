@@ -168,11 +168,11 @@ NOTES:
    - 56 emoji characters
    - 285 hentaigana
    - 3 additional Zanabazar Square characters */
-// #include <stdio.h>
+#include <stdio.h>
 
-// void print_i(int x) {
-//   printf("0.%.8x\n", x);
-// }
+void print_i(int x) {
+  printf("0.%.8x\n", x);
+}
 /*
  * byteSwap - swaps the nth byte and the mth byte
  *  Examples: byteSwap(0x12345678, 1, 3) = 0x56341278
@@ -221,6 +221,19 @@ int fitsBits(int x, int n) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
+  unsigned sign = uf >> 31;
+  unsigned exp = (uf >> 23) & 0xff;
+  unsigned frac = uf & ((0x01 << 0x18) + ~0x0);
+
+  // 2. 특수 케이스 처리
+  //    - exp == 255: NaN 또는 무한대
+  //    - exp < 127: |값| < 1 이므로 0 반환
+  //    - exp >= 158: int 범위 초과
+
+  // 3. 정상 범위: 가수에 암묵적 1 추가하고
+  //    지수에 따라 시프트하여 정수 부분만 추출
+
+  // 4. 부호 적용
   return 2;
 }
 /*
@@ -235,6 +248,9 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatScale1d2(unsigned uf) {
+  unsigned sign = uf >> 31;
+  unsigned exp = (uf >> 23) & 0xff;
+  unsigned frac = uf & ((0x01 << 0x18) + ~0x0);
   return 2;
 }
 /*
@@ -249,7 +265,10 @@ unsigned floatScale1d2(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatScale4(unsigned uf) {
-    return 2;
+  unsigned sign = uf >> 31;
+  unsigned exp = (uf >> 23) & 0xff;
+  unsigned frac = uf & ((0x01 << 0x18) + ~0x0);
+  return 2;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -301,8 +320,14 @@ int isNotEqual(int x, int y) {
  *   Rating: 4
  */
 int isPower2(int x) {
-  int a = 3;
-  return 2;
+  int neg = x >> 31; //1
+  int zero = !x; //1
+  int p2 = !(x & (x + ~0x0)); //4 0x10 & 0x0f = 0x00;
+  // return ((~neg & ((~not_zero & 0x0) | (not_zero & ((p2 & 0x0) | (~p2 & 0x1))))) | (neg & 0x0)); //12
+  // return ((~neg & ((0x0) | (not_zero & ((0x0) | (~p2 & 0x1))))) | (0x0)); //8
+  // return (~neg & ((not_zero & (~p2 & 0x1)))); //5
+  // return (~neg & not_zero & !p2); //12
+  return ((!neg) & !zero & p2); // 4
 }
 /*
  * leftBitCount - returns count of number of consective 1's in
