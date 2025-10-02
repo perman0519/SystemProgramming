@@ -224,45 +224,25 @@ int floatFloat2Int(unsigned uf) {
   unsigned sign = uf >> 31;
   unsigned exp = (uf >> 23) & 0xFF;
   unsigned frac = uf & 0x7FFFFF;
-  int E = exp - 127;  /* Actual exponent */
+  int real_e = exp + (~127 + 1);
   unsigned result;
 
-  /* Special cases */
-  if (exp == 0xFF) {
+  if (exp == 0xFF)
     return 0x80000000u;
-  }
-
-  if (exp == 0) {
+  if (exp == 0)
     return 0;
-  }
-
-  /* Check if exponent is too negative (value < 1) */
-  if (E < 0) {
+  if (real_e < 0)
     return 0;
-  }
-
-  /* Check if exponent is too large (overflow) */
-  if (E >= 31) {
+  if (real_e >= 31)
     return 0x80000000u;
-  }
-
-  /* Add implicit leading 1 to mantissa */
-  frac = frac | 0x800000;  /* Now have 24-bit mantissa: 1.fraction */
-
-  /* Shift mantissa based on exponent */
-  if (E >= 23) {
-    /* Shift left - exponent larger than mantissa bits */
-    result = frac << (E - 23);
-  } else {
-    /* Shift right - exponent smaller than mantissa bits */
-    result = frac >> (23 - E);
-  }
-
-  /* Apply sign */
+  frac = frac | 0x800000;
+  if (real_e >= 23)
+    result = frac << (real_e - 23);
+  else
+    result = frac >> (23 - real_e);
   if (sign) {
     result = -result;
   }
-
   return result;
 }
 /*
