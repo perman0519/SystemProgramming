@@ -221,9 +221,25 @@ int fitsBits(int x, int n) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-  return 1;
-}
+    int s = uf >> 31;
+    int e = (((uf << 1) & 0xff000000) >> 24) - 127;
+    int f = uf & 0x007fffff;
+    unsigned result;
 
+    if (e < 0 || uf == 0) {
+        return 0;
+    }
+
+    if (e >= 32) {
+        return 0x80000000;
+    }
+
+    result = ((f >> 23) + 1) << e;
+    if (s == 1) {
+        result = ~result + 1;
+    }
+    return result;
+}
 /*
  * floatScale1d2 - Return bit-level equivalent of expression 0.5*f for
  *   floating point argument f.
@@ -236,26 +252,8 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatScale1d2(unsigned uf) {
-    // unsigned sign = uf >> 31;
-    // unsigned exp  = (uf >> 23) & 0xFF;
-    // unsigned frac = uf & 0x7FFFFF;
 
-    // if (exp == 0xFF) return uf; // NaN or Inf
-
-    // if (exp > 1) {
-    //     exp = exp - 1;
-    //     return (sign << 31) | (exp << 23) | frac;
-    // } else if (exp == 1) {
-    //     // 정규수 → 비정규수
-    //     frac = frac | (1 << 23); // hidden bit 추가
-    //     frac = frac >> 1;
-    //     return (sign << 31) | frac;
-    // } else { // exp == 0, 이미 비정규수
-    //     frac = frac >> 1;
-    //     return (sign << 31) | frac;
-    // }
 }
-
 /*
  * floatScale4 - Return bit-level equivalent of expression 4*f for
  *   floating point argument f.
@@ -268,10 +266,7 @@ unsigned floatScale1d2(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatScale4(unsigned uf) {
-  // unsigned sign = uf >> 31;
-  // unsigned exp = (uf >> 23) & 0xff;
-  // unsigned frac = uf & ((0x01 << 0x18) + ~0x0);
-  return 2;
+
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -286,20 +281,20 @@ unsigned floatScale4(unsigned uf) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  int sign, bits, b16, b8, b4, b2, b1;
-  sign = x >> 31;
-  x = x ^ sign;
-  b16 = !!(x >> 16) << 4;
-  x = x >> b16;
-  b8 = !!(x >> 8) << 3;
-  x = x >> b8;
-  b4 = !!(x >> 4) << 2;
-  x = x >> b4;
-  b2 = !!(x >> 2) << 1;
-  x = x >> b2;
-  b1 = !!(x >> 1);
-  x = x >> b1;
-  bits = b16 + b8 + b4 + b2 + b1 + x;
+  int neg, bits, bits_16, bits_8, bits_4, bits_2, bits_1;
+  neg = x >> 31;
+  x = x ^ neg;
+  bits_16 = !!(x >> 16) << 4;
+  x = x >> bits_16;
+  bits_8 = !!(x >> 8) << 3;
+  x = x >> bits_8;
+  bits_4 = !!(x >> 4) << 2;
+  x = x >> bits_4;
+  bits_2 = !!(x >> 2) << 1;
+  x = x >> bits_2;
+  bits_1 = !!(x >> 1);
+  x = x >> bits_1;
+  bits = bits_16 + bits_8 + bits_4 + bits_2 + bits_1 + x;
   return bits + 1;
 }
 /*
@@ -356,27 +351,28 @@ int isPower2(int x) {
 int leftBitCount(int x) {
   int count = 0;
   int mask, check;
-  mask = ~0 << 16;
+  int min1 = ~0x0;
+  mask = min1 << 16;
   check = !(~(x | ~mask));
   count = count + (check << 4);
   x = x << (check << 4);
-  mask = ~0 << 24;
+  mask = min1 << 24;
   check = !(~(x | ~mask));
   count = count + (check << 3);
   x = x << (check << 3);
-  mask = ~0 << 28;
+  mask = min1 << 28;
   check = !(~(x | ~mask));
   count = count + (check << 2);
   x = x << (check << 2);
-  mask = ~0 << 30;
+  mask = min1 << 30;
   check = !(~(x | ~mask));
   count = count + (check << 1);
   x = x << (check << 1);
-  mask = ~0 << 31;
+  mask = min1 << 31;
   check = !(~(x | ~mask));
   count = count + check;
   x = x << check;
-  check = !(~(x | ~(~0 << 31)));
+  check = !(~(x | ~(min1 << 31)));
   count = count + check;
   return count;
 }
