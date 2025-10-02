@@ -221,24 +221,51 @@ int fitsBits(int x, int n) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-    int s = uf >> 31;
-    int e = (((uf << 1) & 0xff000000) >> 24) - 127;
-    int f = uf & 0x007fffff;
-    unsigned result;
-
-    if (e < 0 || uf == 0) {
-        return 0;
-    }
-
-    if (e >= 32) {
-        return 0x80000000;
-    }
-
-    result = ((f >> 23) + 1) << e;
-    if (s == 1) {
-        result = ~result + 1;
-    }
-    return result;
+  unsigned sign = uf >> 31;
+  unsigned exp = (uf >> 23) & 0xFF;
+  unsigned frac = uf & 0x7FFFFF;
+  int E = exp - 127;  /* Actual exponent */
+  unsigned result;
+  
+  /* Special cases */
+  if (exp == 0xFF) {
+    /* NaN or Infinity */
+    return 0x80000000u;
+  }
+  
+  if (exp == 0) {
+    /* Denormalized number or zero - rounds to 0 */
+    return 0;
+  }
+  
+  /* Check if exponent is too negative (value < 1) */
+  if (E < 0) {
+    return 0;
+  }
+  
+  /* Check if exponent is too large (overflow) */
+  if (E >= 31) {
+    return 0x80000000u;
+  }
+  
+  /* Add implicit leading 1 to mantissa */
+  frac = frac | 0x800000;  /* Now have 24-bit mantissa: 1.fraction */
+  
+  /* Shift mantissa based on exponent */
+  if (E >= 23) {
+    /* Shift left - exponent larger than mantissa bits */
+    result = frac << (E - 23);
+  } else {
+    /* Shift right - exponent smaller than mantissa bits */
+    result = frac >> (23 - E);
+  }
+  
+  /* Apply sign */
+  if (sign) {
+    result = -result;
+  }
+  
+  return result;
 }
 /*
  * floatScale1d2 - Return bit-level equivalent of expression 0.5*f for
