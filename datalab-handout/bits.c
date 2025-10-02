@@ -260,31 +260,7 @@ unsigned floatScale1d2(unsigned uf) {
   unsigned sign = uf >> 31;
   unsigned exp  = (uf >> 23) & 0xFF;
   unsigned frac = uf & 0x7FFFFF;
-
-  /* NaN or Infinity - return as is */
-  if (exp == 0xFF) {
-    return uf;
-  }
-
-  /* Denormalized number (exp == 0) */
-  if (exp == 0) {
-    /* Just shift fraction right by 1, keep sign */
-    /* This handles rounding toward zero */
-    frac = frac >> 1;
-    return (sign << 31) | frac;
-  }
-
-  /* Normalized number transitioning to denormalized (exp == 1) */
-  if (exp == 1) {
-    /* Add implicit leading 1, then shift right */
-    frac = (frac | 0x800000) >> 1;
-    /* exp becomes 0 (denormalized) */
-    return (sign << 31) | frac;
-  }
-
-  /* Normal case: normalized number staying normalized (exp > 1) */
-  exp = exp - 1;
-  return (sign << 31) | (exp << 23) | frac;
+  return 42;
 }
 /*
  * floatScale4 - Return bit-level equivalent of expression 4*f for
@@ -302,47 +278,8 @@ unsigned floatScale1d2(unsigned uf) {
  * floating point argument f.
  * ...
  */
-unsigned floatUnsigned2Float(unsigned u) {
-    unsigned exp = 0x0;
-    unsigned e = 0x0;
-    unsigned frac = 0x0;
-    unsigned c = u;
-    unsigned mask = 0xFFFFFFFF;
-
-    if (u == 0) {
-        return 0;
-    }
-
-    while ((c != 1) && (exp != 31)) {
-        c = c >> 1;
-        exp += 1;
-        mask = mask << 1;
-    }
-
-    int diff = 32 - (int)exp;
-    e = exp + 127;
-    frac = u & (~mask);
-
-    int gap = 9 - diff;
-    if (gap < 0) {
-        frac = frac << (diff - 9);
-    } else {
-        unsigned backup = frac;
-        frac = frac >> gap;
-        unsigned remain = backup - (frac << gap);
-        unsigned compare = 1 << (8 - diff);
-        if (remain > compare) {
-            frac += 1;
-        } else if (remain == compare) {
-            if ((backup + compare) & (compare << 1)) {
-                frac = frac;
-            } else {
-                frac += 1;
-            }
-        }
-    }
-
-    return ((e << 23) + frac) & 0x7FFFFFFF;
+unsigned floatScale4(unsigned uf) {
+  return 42;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
